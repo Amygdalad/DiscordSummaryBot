@@ -1,0 +1,5 @@
+discord.py
+python-dotenv
+transformers
+sentencepiece
+torch           # or comment out & use a smaller backend if resource-constrained
