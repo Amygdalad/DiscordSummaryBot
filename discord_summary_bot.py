@@ -4,7 +4,7 @@ Discord Chat Summary Bot (Free / Self-Hosted)
 
 A lightweight Discord bot that summarizes recent channel or thread conversations on-demand using a *local* (free) open-source language model (default: `google/flan-t5-small`) or a heuristic fallback summarizer when model inference isn't available.
 
-Why this design?
+Why this design
 - **Free**: Runs locally; no paid API keys required. (Optional: point to any HF Transformers text2text model.)
 - **Mobile-friendly**: Uses **slash commands** so you can trigger summaries from the Discord mobile app.
 - **Scoped Summaries**: Summarize last *N* messages *or* messages from a time window (e.g., last 24h).
