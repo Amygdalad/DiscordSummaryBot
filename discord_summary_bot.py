@@ -47,29 +47,29 @@ async def fetch_messages(channel, limit=100, after=None, include_bots=False):
 
 @tree.command(name="summarize", description="Summarize recent messages in this channel")
 @app_commands.describe(limit="Number of recent messages to summarize")
-async def summarize_here(interaction: discord.Interaction, limit: int = 100):
+async def summarize(interaction: discord.Interaction, limit: int = 100):
     channel = interaction.channel
     print(f"🔍 Running summarize in channel: {channel.name}, limit={limit}")
+
+    await interaction.response.defer(thinking=True, ephemeral=not SUMMARY_PUBLIC)
 
     try:
         msgs = await fetch_messages(channel, limit=limit)
     except discord.Forbidden:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ I don't have permission to read messages in this channel. Please check my permissions.",
             ephemeral=True
         )
         return
 
     if not msgs:
-        await interaction.response.send_message("No messages to summarize.", ephemeral=True)
+        await interaction.followup.send("No messages to summarize.", ephemeral=True)
         return
 
-    # Placeholder for summary logic
-    summary = "This is a summary of the last {} messages.".format(len(msgs))
+    # Fallback lightweight summary logic
+    recent_lines = [f"• {msg.author.display_name}: {msg.content[:100]}" for msg in msgs[-5:]]
+    summary = "📝 Most recent messages:\n" + "\n".join(recent_lines)
 
-    if SUMMARY_PUBLIC:
-        await interaction.response.send_message(summary)
-    else:
-        await interaction.response.send_message(summary, ephemeral=True)
+    await interaction.followup.send(summary, ephemeral=not SUMMARY_PUBLIC)
 
 bot.run(TOKEN)
