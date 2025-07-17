@@ -29,6 +29,7 @@ tree = bot.tree
 async def on_ready():
     print(f"✅ Bot is ready. Logged in as {bot.user} ({bot.user.id})")
     await tree.sync()
+    print("🌍 Global commands synced")
 
 @tree.command(name="ping", description="Check if the bot is alive")
 async def ping(interaction: discord.Interaction):
@@ -67,8 +68,13 @@ async def summarize(interaction: discord.Interaction, limit: int = 100):
         return
 
     # Fallback lightweight summary logic
-    recent_lines = [f"• {msg.author.display_name}: {msg.content[:100]}" for msg in msgs[-5:]]
-    summary = "📝 Most recent messages:\n" + "\n".join(recent_lines)
+    visible_msgs = [msg for msg in msgs if msg.content.strip() != ""]
+    if not visible_msgs:
+        await interaction.followup.send("No readable (non-empty) messages found.", ephemeral=True)
+        return
+
+    summary_lines = [f"• {msg.author.display_name}: {msg.content[:100]}" for msg in visible_msgs[-min(5, len(visible_msgs)):]]
+    summary = f"📝 Summary of last {len(visible_msgs)} messages:\n" + "\n".join(summary_lines)
 
     await interaction.followup.send(summary, ephemeral=not SUMMARY_PUBLIC)
 
