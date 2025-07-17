@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 import torch
 
+__version__ = "1.0.0"
+
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -43,7 +45,11 @@ async def on_ready():
 
 @tree.command(name="ping", description="Check if the bot is alive")
 async def ping(interaction: discord.Interaction):
-    await interaction.response.send_message("🏓 Pong! I'm alive.", ephemeral=True)
+    await interaction.response.send_message(f"🏓 Pong! I'm alive. (v{__version__})", ephemeral=True)
+
+@tree.command(name="version", description="Show bot version")
+async def version(interaction: discord.Interaction):
+    await interaction.response.send_message(f"🤖 SummaryBot version: `{__version__}`", ephemeral=True)
 
 async def fetch_messages(channel, limit=100, after=None, include_bots=False):
     messages = []
