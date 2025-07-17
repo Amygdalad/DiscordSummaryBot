@@ -11,6 +11,8 @@ from discord.ext import commands
 from discord import app_commands
 import asyncio
 from dotenv import load_dotenv
+from transformers import T5ForConditionalGeneration, T5Tokenizer
+import torch
 
 load_dotenv()
 
@@ -24,6 +26,14 @@ intents.messages = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 tree = bot.tree
+
+# Load FLAN-T5 model and tokenizer
+print("🔍 Loading FLAN-T5 model...")
+tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-small")
+model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-small")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = model.to(device)
+print("✅ FLAN-T5 model loaded.")
 
 @bot.event
 async def on_ready():
@@ -46,6 +56,13 @@ async def fetch_messages(channel, limit=100, after=None, include_bots=False):
         raise
     return messages
 
+def generate_summary(text):
+    prompt = f"Summarize this conversation:\n{text.strip()}"
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, padding=True).to(device)
+    output_ids = model.generate(**inputs, max_length=150)
+    summary = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+    return summary
+
 @tree.command(name="summarize", description="Summarize recent messages in this channel")
 @app_commands.describe(limit="Number of recent messages to summarize")
 async def summarize(interaction: discord.Interaction, limit: int = 100):
@@ -63,19 +80,17 @@ async def summarize(interaction: discord.Interaction, limit: int = 100):
         )
         return
 
-    if not msgs:
-        await interaction.followup.send("No messages to summarize.", ephemeral=True)
-        return
-
-    # Fallback lightweight summary logic
     visible_msgs = [msg for msg in msgs if msg.content.strip() != ""]
     if not visible_msgs:
         await interaction.followup.send("No readable (non-empty) messages found.", ephemeral=True)
         return
 
-    summary_lines = [f"• {msg.author.display_name}: {msg.content[:100]}" for msg in visible_msgs[-min(5, len(visible_msgs)):]]
-    summary = f"📝 Summary of last {len(visible_msgs)} messages:\n" + "\n".join(summary_lines)
+    combined_text = "\n".join([f"{msg.author.display_name}: {msg.content}" for msg in reversed(visible_msgs)])
 
-    await interaction.followup.send(summary, ephemeral=not SUMMARY_PUBLIC)
+    try:
+        summary = generate_summary(combined_text)
+        await interaction.followup.send(f"📝 Summary of last {len(visible_msgs)} messages:\n{summary}", ephemeral=not SUMMARY_PUBLIC)
+    except Exception as e:
+        await interaction.followup.send(f"⚠️ Failed to summarize: {e}", ephemeral=True)
 
 bot.run(TOKEN)
